@@ -1,0 +1,266 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+</head>
+<body>
+
+<h1>Sistem IoT</h1>
+<p>Status : <b id="status" style="color:red";>Terputus</b></p>
+
+
+
+    <p>
+        suhu : 
+        <span id="suhu">?</span> 
+        C 
+    </p>
+    <p>
+        Kelembaban :
+        <span id="kelembapan">?</span>
+        %
+    </p>
+    <br>
+    <p>INI TOMBOL GESSS</p>
+    <button onclick="publish('nyala')">Nyala</button>
+    <button onclick="publish('mati')">Mati</button>
+</body>
+</html> -->
+
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <link href="style.css" rel="stylesheet">
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+            keyframes: {
+                turnRight: {
+                    '0%': { transform: 'translateX(0px)' },
+                    '100%': { transform: 'translateX(70px)' },
+                }
+            },
+            animation: {
+                'turnRight': 'turnRight 0.3s linear normal forwards',
+                'turnLeft': 'turnRight 0.3s linear reverse forwards',
+            },
+        }
+      }
+    }
+  </script>
+</head>
+<body class="font-[inter]">
+    <!-- overlay -->
+    <div id="notif" class="hidden w-[450px] max-[500px]:w-[70vw] h-max fixed z-[9999] left-2/4 -translate-x-2/4 top-2/4 -translate-y-2/4 bg-white p-5 flex flex-col items-center gap-y-4 rounded-md shadow-2xl">
+        <div id="silangNotif" class="absolute right-5 top-5 text-2xl max-[500px]:text-xl px-[10px] max-[500px]:px-2 border-2 border-black/20 rounded-md text-black/65 shadow-xl cursor-pointer">X</div>
+        <div class="p-2 bg-red-400/50 rounded-full">
+            <img src="assets/warning.png" alt="warning" class="w-16">
+        </div>
+        <h1 class="text-center italic text-red-600" id="infoNotif">Peringatan!, Suhu Tinggi harap dinginkan barangnya.......................</h1>
+     </div>
+    <!-- overlay -->
+    <audio src="assets/Warning Signal Alarm with Rapid Rhythmic Buzzing Tones.mp4" preload="auto" id="audiodata"></audio>
+  <section class="relative flex flex-col h-screen">
+    <!-- position -->
+     <div class="absolute top-5 max-[500px]:top-2">
+        <img src="assets/sun.png" alt="sun" class="w-[260px] max-[1300px]:w-[200px] max-[500px]:w-[140px]">
+     </div>
+    <!-- position -->
+     <div class="self-center flex max-[500px]:flex-col mt-20 max-[500px]:mt-40 gap-x-10 max-[500px]:gap-x-0 max-[500px]:w-[80vw]">
+        <div class="text-7xl max-[500px]:text-5xl max-[1300px]:text-6xl tracking-wide self-end mb-32 font-bold leading-[75px] max-[500px]:mb-10">
+            Pemantauan <span>suhu</span> dan <br> <span>kelembapan</span> gudang <br> makanan ringan
+        </div>
+        <div class="">
+            <img src="assets/meter.png" alt="meterCelcius" class="w-[450px] max-[1300px]:w-[320px] max-[500px]:w-[150px]">
+        </div>
+     </div>
+     <!-- position -->
+      <div class="absolute bottom-0 right-0">
+        <img src="assets/sunCloud.png" alt="sunCloud" class="max-[500px]:w-[180px]">
+      </div>
+     <!-- position -->
+  </section>
+  <section class="w-full flex max-[500px]:flex-col">
+    <div class="py-5 bg-red-500 flex-auto flex justify-center max-[500px]:order-1">
+        <div class="w-max border-4 rounded-2xl px-8 py-4">
+            <h1 class="text-4xl max-[500px]:text-3xl font-medium text-center mb-1">Sensor Suhu</h1>
+            <div class="flex items-center gap-5">
+                <img src="assets/speed.svg" alt="speed" class="w-[100px] max-[500px]:w-[70px]">
+                <h1 class="text-6xl max-[500px]:text-5xl font-bold"><span class="hidden" id="suhu"></span><span id="suhuP">0</span>&deg;</h1>
+            </div>
+        </div>
+    </div>
+    <div class="py-5 bg-green-400 flex-auto flex justify-center">
+        <div class="w-max border-4 rounded-2xl px-8 py-4">
+            <h1 class="text-4xl font-medium text-center mb-1">Kelembapan</h1>
+            <div class="flex items-center gap-5">
+                <img src="assets/brightness.svg" alt="speed" class="w-[100px] max-[500px]:w-[70px]">
+                <h1 class="text-6xl max-[500px]:text-5xl font-bold"><span class="hidden" id="kelembapan"></span><span id="kelembapanP">0</span>%</h1>
+            </div>
+        </div>
+    </div>
+    <div class="py-5 bg-blue-400 flex-auto flex justify-center max-[500px]:order-2">
+        <div class="w-max border-4 rounded-2xl px-8 py-4 flex flex-col items-center">
+            <h1 class="text-4xl font-medium text-center mb-4">Controller</h1>
+            <label for="toggle" class="w-[90%] relative flex justify-between items-center bg-white px-3 py-4 rounded-full cursor-pointer select-none">
+                <div class="text-2xl font-bold">OFF</div>
+                <div id="circle" class="absolute rounded-full w-[50px] h-[50px] bg-red-500"></div>
+                <div class="text-2xl font-bold">ON</div>
+            </label>
+            <input class="hidden" type="checkbox" name="toggle" id="toggle">
+        </div>
+    </div>
+  </section>
+  <section class="flex justify-center w-full mt-[80px] mb-5">
+    <div class="w-[65%] flex max-[500px]:flex-col justify-between items-center">
+        <div class="w-[60%] max-[500px]:w-[80vw] max-[500px]:order-2">
+            <h1 class="text-4xl font-semibold mb-3">Peringatan!</h1>
+            <p class="text-justify text-lg">
+                Suhu optimal penyimpanan makanan ringan di gudang adalah 18-24°C, dengan kelembaban udara 50-60%. Suhu tinggi dapat merusak tekstur dan rasa, sementara kelembaban berlebih bisa menyebabkan jamur. Pengaturan dan pemantauan yang tepat menjaga kualitas dan daya tahan produk.
+            </p>
+        </div>
+        <div class="w-max max-[500px]:order-1">
+            <img src="assets/celcius.png" alt="celcius" class="w-[300px] max-[500px]:w-[200px]">
+        </div>
+    </div>
+  </section>
+  <script src="script.js"></script>
+</body>
+</html>
+
+<script>
+    const clientId = Math.random().toString(16).substr(2, 8);
+    const host = "wss://ceksuhu.cloud.shiftr.io:443";
+
+    const option = {
+        keepalive : 60,
+        clientId : clientId,
+        username :  "ceksuhu",
+        password : "RJThizpxvqXkmtfF",
+        protocolId : "MQTT",
+        protocolVersion : 4,
+        Clean : false,
+        reconnectPeriode : 1000,
+        connectTimeout : 30000,
+        };
+
+        console.log("Menghubungkan ke broker");
+        const client = mqtt.connect(host, option);
+        client.subscribe("ceksuhu/#", {qos : 1});
+
+
+        client.on("connect", ()=>{
+            console.log("Terhubung ke broker. Clientid :" + clientId);
+            document.getElementById("status").innerHTML = "Terhubung";
+            document.getElementById("status").style.color = "blue";
+        });
+        
+        let dataSuhu;
+        let dataKelembapan
+
+        client.on ("message", function (topic, data) {
+            if (topic == "ceksuhu/suhu") {
+                document.getElementById ("suhu").innerHTML = data;
+                dataSuhu = data;
+            }
+            
+            if (topic == "ceksuhu/kelembapan") {
+                document.getElementById ("kelembapan").innerHTML = data;
+                dataKelembapan = data;
+            }
+
+        const toggle1 = document.getElementById('toggle');
+        const silangNotif = document.getElementById('silangNotif')
+        const infoNotif = document.getElementById('infoNotif')
+        if(toggle1.checked) {
+            setTimeout(() => {
+                if(!localStorage.getItem('notifPeringatan')) {
+                    if(dataSuhu > 30) {
+                        soundNotif();
+                        infoNotif.innerHTML = "Suhu terlalu tinggi!"
+                    } else if(dataKelembapan > 70) {
+                        soundNotif();
+                        infoNotif.innerHTML = "Kelembapan terlalu tinggi!"
+                    }
+                    localStorage.setItem('notifPeringatan', 'true')
+                } else {
+                    localStorage.removeItem('notifPeringatan')
+                }
+            }, 400)
+        }
+        silangNotif.addEventListener('click', ()=> {
+            soundOff();
+            localStorage.removeItem('notifPeringatan');
+        })
+});
+
+
+function publish(data){
+    client.publish("ceksuhu/led", data, {qos : 1, retain : true});
+}
+
+const toggle = document.getElementById('toggle');
+const circle = document.getElementById('circle');
+
+toggle.addEventListener('click', () => {
+    let suhu = document.getElementById('suhu')
+    let kelembapan = document.getElementById('kelembapan')
+    let suhuP = document.getElementById('suhuP')
+    let kelembapanP = document.getElementById('kelembapanP')
+    if(toggle.checked) {
+        circle.classList.add('animate-turnRight');
+        client.publish("ceksuhu/led", "nyala", {qos : 1, retain : true});
+        setTimeout(() => {
+            suhu.classList.remove('hidden')
+            suhuP.classList.add('hidden')
+            kelembapan.classList.remove('hidden')
+            kelembapanP.classList.add('hidden')
+            circle.classList.add('bg-green-400');
+            circle.classList.remove('bg-red-500');
+            circle.classList.remove('animate-turnRight');
+            circle.classList.add('translate-x-[70px]');
+            
+        }, 400);
+    } else {
+        circle.classList.add('animate-turnLeft');
+        client.publish("ceksuhu/led", "mati", {qos : 1, retain : true});
+        setTimeout(() => {
+            suhu.classList.add('hidden')
+            suhuP.classList.remove('hidden')
+            kelembapan.classList.add('hidden')
+            kelembapanP.classList.remove('hidden')
+            circle.classList.add('bg-red-500');
+            circle.classList.remove('bg-green-400');
+            circle.classList.remove('animate-turnLeft');
+            circle.classList.remove('translate-x-[70px]');
+            
+        }, 400);
+    }
+})
+
+
+
+function soundNotif(){
+const audio = document.getElementById('audiodata')
+let notif = document.getElementById('notif')
+notif.classList.remove('hidden')
+audio.play();
+}
+
+function soundOff() {
+    document.getElementById('audiodata').pause();
+    document.getElementById('audiodata').currentTime = 0;
+    document.getElementById('notif').classList.add('hidden')
+}
+</script>

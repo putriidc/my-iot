@@ -1,0 +1,12 @@
+{
+    "vsmqtt.brokerProfiles": [
+        {
+            "name": "ceksuhu",
+            "host": "ceksuhu.cloud.shiftr.io",
+            "port": 1883,
+            "clientId": "vsmqtt_client_90a8",
+            "username": "ceksuhu",
+            "password": "RJThizpxvqXkmtfF",
+        }
+    ]
+}                                                   
